@@ -1,0 +1,21 @@
+[package]
+name = "scheduler"
+version = "0.1.1"
+edition = "2024"
+
+[lints.clippy]
+pedantic = "warn"
+
+[lib]
+crate-type = ["cdylib"]
+
+[dependencies]
+ciborium = "0.2.2"
+wasm-minimal-protocol = "0.1.0"
+
+[profile.release]
+lto = true
+strip = true
+opt-level = "z"
+codegen-units = 1
+panic = "abort"

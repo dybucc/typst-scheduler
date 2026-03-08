@@ -1,0 +1,6 @@
+[package]
+name = "scheduler"
+version = "0.1.1"
+entrypoint = "main.typ"
+
+[tool.utpm]

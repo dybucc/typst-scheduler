@@ -1,7 +1,4 @@
-#![expect(
-    incomplete_features,
-    reason = "I'll trust it will work until it doesn't."
-)]
+#![expect(incomplete_features, reason = "I'll trust it will work until it doesn't.")]
 #![feature(lazy_type_alias)]
 
 use std::{fmt::Display, result::Result as StdResult};
@@ -37,9 +34,7 @@ initiate_protocol!();
 pub fn schedule(subjects: &[u8], projects: &[u8], days: &[u8]) -> Result<Vec<u8>> {
     #[inline]
     #[cold]
-    fn err(e: impl Display) -> String {
-        e.to_string()
-    }
+    fn err(e: impl Display) -> String { e.to_string() }
 
     let (subjects, projects, days) = check_types(
         ciborium::from_reader(subjects).map_err(err)?,
@@ -61,17 +56,11 @@ pub fn schedule(subjects: &[u8], projects: &[u8], days: &[u8]) -> Result<Vec<u8>
 fn check_types(subjects: Value, projects: Value, days: Value) -> Result<InputTriplet> {
     #[inline]
     #[cold]
-    fn err<'a>(reason: &'a str) -> impl Fn(Value) -> &'a str {
-        move |_| reason
-    }
+    fn err<'a>(reason: &'a str) -> impl Fn(Value) -> &'a str { move |_| reason }
 
     Ok((
-        subjects
-            .into_map()
-            .map_err(err("`subjects` isn't a dictionary"))?,
-        projects
-            .into_map()
-            .map_err(err("`projects` isn't a dictionary"))?,
+        subjects.into_map().map_err(err("`subjects` isn't a dictionary"))?,
+        projects.into_map().map_err(err("`projects` isn't a dictionary"))?,
         days.into_array().map_err(err("`days` isn't an array"))?,
     ))
 }
@@ -133,10 +122,10 @@ fn translate(
         let mut day_output = Vec::with_capacity(day.len());
         for event in day {
             match event {
-                Event::Day(day) => day_output.push(days[*day].clone()),
-                Event::Subject(subject) => day_output.push(subjects[*subject].clone().1),
-                Event::Project(project) => day_output.push(projects[*project].clone().1),
-                Event::Other(other) => day_output.push(
+                | Event::Day(day) => day_output.push(days[*day].clone()),
+                | Event::Subject(subject) => day_output.push(subjects[*subject].clone().1),
+                | Event::Project(project) => day_output.push(projects[*project].clone().1),
+                | Event::Other(other) => day_output.push(
                     cbor!(other).map_err(|_| "failed to map custom values into cbor `Value`")?,
                 ),
             }

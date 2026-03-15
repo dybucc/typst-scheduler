@@ -38,10 +38,22 @@ link:
 [arg("major", pattern='\d+')]
 [arg("minor", pattern='\d+')]
 [arg("patch", pattern='\d+')]
-bump patch=current-patch minor=current-minor major=current-major:
+[parallel]
+bump patch=current-patch minor=current-minor major=current-major: (bump-typst patch minor major) (bump-rust patch minor major)
+
+[private]
+check-version patch minor major:
     {{ if patch + minor + major == current-patch + current-minor + current-major { error("bumping is meant to bump versions; checking them goes through the `current` recipe") } else { "" } }}
+
+[private]
+bump-typst patch minor major: (check-version patch minor major)
     {{ utpm }} ws bump {{ major + "." + minor + "." + patch }}
-    {{ cargo }} set-version --bump {{ if major != current-major { "major" } else if minor != current-minor { "minor" } else if patch != current-patch { "patch" } else { error("version bumps are not meant to provide the current package version; use the `current` recipe for that") } }}
+
+[private]
+bump-rust patch minor major: (check-version patch minor major)
+    {{ if major != current-major { cargo + " set-version --bump major" } else { "" } }}
+    {{ if minor != current-minor { cargo + " set-version --bump minor" } else { "" } }}
+    {{ if patch != current-patch { cargo + " set-version --bump patch" } else { "" } }}
 
 # prints out the current typst package version as per the manifest file
 current:

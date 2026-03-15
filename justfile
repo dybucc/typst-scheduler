@@ -10,22 +10,23 @@ cargo := require("cargo")
 cp := require("cp")
 echo := require("echo")
 utpm := require("utpm")
-current_patch := replace_regex(trim(replace_regex(read(justfile_directory() / "typst.toml"), "(?m)^[^v](.)*", "")), '[^=]+= "\d+\.\d+\.(\d+)"', "${1}")
-current_minor := replace_regex(trim(replace_regex(read(justfile_directory() / "typst.toml"), "(?m)^[^v](.)*", "")), '[^=]+= "\d+\.(\d+)\.\d+"', "${1}")
-current_major := replace_regex(trim(replace_regex(read(justfile_directory() / "typst.toml"), "(?m)^[^v](.)*", "")), '[^=]+= "(\d+)\.\d+\.\d+"', "${1}")
+current-patch := replace_regex(trim(replace_regex(read(justfile_directory() / "typst.toml"), "(?m)^[^v](.)*", "")), '[^=]+= "\d+\.\d+\.(\d+)"', "${1}")
+current-minor := replace_regex(trim(replace_regex(read(justfile_directory() / "typst.toml"), "(?m)^[^v](.)*", "")), '[^=]+= "\d+\.(\d+)\.\d+"', "${1}")
+current-major := replace_regex(trim(replace_regex(read(justfile_directory() / "typst.toml"), "(?m)^[^v](.)*", "")), '[^=]+= "(\d+)\.\d+\.\d+"', "${1}")
 current := replace_regex(trim(replace_regex(read(justfile_directory() / "typst.toml"), "(?m)^[^v](.)*", "")), '[^=]+= "(.+)"', "${1}")
+default-build-dir := "./target/wasm32-unknown-unknown/release/scheduler.wasm"
 
 [default]
 [private]
 default:
     {{ just_executable() }} --list --unsorted --justfile {{ justfile() }}
 
-# builds the rust project containing the wasm plugin and copy it to the ws root
-build-wasm:
+# builds the rust wasm plugin and copies it to the workspace root
+build-wasm build-dir=default-build-dir:
     {{ cargo }} build --release --target wasm32-unknown-unknown
-    {{ cp }} ./target/wasm32-unknown-unknown/release/scheduler.wasm .
+    {{ cp }} {{ build-dir }} .
 
-# cleans up the build artifacts from the rust plugin
+# cleans up the rust build artifacts
 clean:
     {{ cargo }} clean
 
@@ -34,9 +35,13 @@ link:
     {{ utpm }} ws l
 
 # bumps the current version of the rust crate and the typst plugin
-bump type patch=current_patch minor=current_minor major=current_major:
+[arg("major", pattern='\d+')]
+[arg("minor", pattern='\d+')]
+[arg("patch", pattern='\d+')]
+bump patch=current-patch minor=current-minor major=current-major:
+    {{ if patch + minor + major == current-patch + current-minor + current-major { error("bumping is meant to bump versions; checking them goes through the `current` recipe") } else { "" } }}
     {{ utpm }} ws bump {{ major + "." + minor + "." + patch }}
-    {{ cargo }} set-version --bump {{ if type == "patch" { "patch" } else if type == "minor" { "minor" } else if type == "major" { "major" } else { error("only supported version bumps are: `patch`, `minor`, `major`") } }}
+    {{ cargo }} set-version --bump {{ if major != current-major { "major" } else if minor != current-minor { "minor" } else if patch != current-patch { "patch" } else { error("version bumps are not meant to provide the current package version; use the `current` recipe for that") } }}
 
 # prints out the current typst package version as per the manifest file
 current:
